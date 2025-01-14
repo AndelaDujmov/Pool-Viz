@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Real-Time Mempool Visualizer</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #1a1d2e;
+            font-family: 'Arial', sans-serif;
+            color: #fff;
+        }
+        .container {
+            margin-top: 20px;
+        }
+        .transaction {
+            background: #4b79a1;
+            margin: 10px 0;
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1 class="text-center">Real-Time Mempool Transactions</h1>
+    <div id="transactionList"></div>
+</div>
+
+<script>
+
+    const eventSource = new EventSource('/visualise');
+
+    eventSource.onmessage = function (event) {
+        const data = JSON.parse(event.data);
+        const transactionList = document.getElementById('transactionList');
+
+        const transactionElement = document.createElement('div');
+        transactionElement.classList.add('transaction');
+        transactionElement.innerHTML = `
+            <p><strong>Transaction ID:</strong> ${data.txid}</p>
+            <p><strong>Size:</strong> ${data.size} bytes</p>
+            <p><strong>Fee:</strong> ${data.fee} BTC</p>
+            <p><strong>Confirmations:</strong> ${data.confirmations}</p>
+            <p><strong>Confirmed:</strong> ${data.confirmed ? 'Yes' : 'No'}</p>
+        `;
+
+        transactionList.prepend(transactionElement);
+
+        if (transactionList.childElementCount > 20) {
+            transactionList.removeChild(transactionList.lastChild);
+        }
+    };
+
+    eventSource.onerror = function () {
+        console.error('Error receiving updates from the server.');
+        eventSource.close();
+    };
+</script>
+</body>
+</html>

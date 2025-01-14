@@ -6,6 +6,7 @@ import wf.bitcoin.javabitcoindrpcclient.BitcoinJSONRPCClient;
 import wf.bitcoin.javabitcoindrpcclient.BitcoindRpcClient;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -89,51 +90,52 @@ public class MempoolService {
     }
 
     public Map<String, Object> getMempoolStatistics() {
-
         List<String> transactions = client.getRawMemPool();
 
-        BigDecimal totalFee = transactions.stream()
-                .map(this::calculateFee)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-
-        long totalSize = transactions.stream()
+        // Use parallel streams to calculate totalFee and totalSize
+        long totalSize = transactions.parallelStream()
                 .mapToLong(this::calculateTransactionSize)
                 .sum();
 
+        BigDecimal totalFee = transactions.parallelStream()
+                .map(this::calculateFee)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        // Calculate average fee and size
         BigDecimal averageFee = totalFee.divide(BigDecimal.valueOf(transactions.size()), BigDecimal.ROUND_HALF_UP);
         long averageSize = totalSize / transactions.size();
 
+        // Prepare the statistics map
         Map<String, Object> stats = new HashMap<>();
-        stats.put("Total Transactions", transactions.size());
-        stats.put("Total Size (bytes)", totalSize);
-        stats.put("Average Fee (BTC)", averageFee);
-        stats.put("Average Size (bytes)", averageSize);
+        stats.put("totalTransactions", transactions.size());
+        stats.put("totalSize", totalSize);
+        stats.put("averageFee", averageFee);
+        stats.put("averageSize", averageSize);
 
         return stats;
     }
 
+
     public Map<String, List<Long>> getFeeHistogramData() {
 
+        // Get all transactions once.
         List<String> transactions = client.getRawMemPool();
 
+        // Initialize a map to hold the histogram data.
         Map<String, List<Long>> histogramData = new HashMap<>();
 
-        histogramData.put("Low Fee", transactions.stream()
-                .filter(txid -> calculateFeeRate(txid).compareTo(BigDecimal.valueOf(10)) < 0)
-                .map(this::calculateTransactionSize)
-                .collect(Collectors.toList()));
+        transactions.parallelStream().forEach(txid -> {
+            BigDecimal feeRate = calculateFeeRate(txid);
+            Long size = calculateTransactionSize(txid);
 
-        histogramData.put("Medium Fee", transactions.stream()
-                .filter(txid -> calculateFeeRate(txid).compareTo(BigDecimal.valueOf(50)) >= 0
-                        && calculateFeeRate(txid).compareTo(BigDecimal.valueOf(10)) >= 0)
-                .map(this::calculateTransactionSize)
-                .collect(Collectors.toList()));
+            if (feeRate.compareTo(BigDecimal.valueOf(50)) >= 0) {
+                histogramData.computeIfAbsent("High Fee", k -> new ArrayList<>()).add(size);
+            }
+        });
 
-        histogramData.put("High Fee", transactions.stream()
-                .filter(txid -> calculateFeeRate(txid).compareTo(BigDecimal.valueOf(50)) >= 0)
-                .map(this::calculateTransactionSize)
-                .collect(Collectors.toList()));
+        System.out.println(histogramData);
 
         return histogramData;
     }
+
 }

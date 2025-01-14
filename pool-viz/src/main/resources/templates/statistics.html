@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.4/Chart.js"></script>
+<body>
+
+<canvas id="myChart" style="width:100%;max-width:800px"></canvas>
+
+<script>
+    // Get values from the Model
+    var totalTransactions = /*[[${totalTransactions}]]*/ 344;
+    var totalSize = /*[[${totalSize}]]*/ 129401;
+    var averageFee = /*[[${averageFee}]]*/ 0.00003093;
+    var averageSize = /*[[${averageSize}]]*/ 376;
+
+    // Prepare data for the chart
+    var labels = ["Total Transactions", "Total Size (bytes)", "Average Fee (BTC)", "Average Size (bytes)"];
+    var data = [
+        totalTransactions,
+        totalSize,
+        averageFee, // This will be the BTC value (possibly needs scaling if it's very small)
+        averageSize
+    ];
+
+    var barColors = [
+        "#b91d47", "#00aba9", "#2b5797", "#e8c3b9"
+    ];
+
+    // Create the pie chart
+    new Chart("myChart", {
+        type: "pie",
+        data: {
+            labels: labels,
+            datasets: [{
+                backgroundColor: barColors,
+                data: data
+            }]
+        },
+        options: {
+            title: {
+                display: true,
+                text: "Mempool Statistics"
+            }
+        }
+    });
+</script>
+
+</body>
+</html>

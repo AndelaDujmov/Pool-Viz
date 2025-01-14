@@ -1,45 +1,79 @@
 package com.poolviz.pool_viz.controller;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.poolviz.pool_viz.service.MempoolService;
 import lombok.AllArgsConstructor;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.servlet.ModelAndView;
 import reactor.core.publisher.Flux;
+import wf.bitcoin.javabitcoindrpcclient.BitcoinRPCException;
 import wf.bitcoin.javabitcoindrpcclient.BitcoindRpcClient;
 
 
 import java.math.BigDecimal;
 import java.time.Duration;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
-@RestController
+@Controller
 @AllArgsConstructor
 public class MempoolController {
 
     private MempoolService mempoolService;
 
     @GetMapping("/")
-    public String home() {
+    public ModelAndView index() {
 
-        return "Hello World!";
+        ModelAndView mv = new ModelAndView();
+
+        List<String> mempool = mempoolService.getRawMempool();
+
+        mv.addObject("mempool", mempool);
+        mv.addObject("data", "Welcome home man");
+
+        mv.setViewName("index");
+
+        return mv;
     }
 
-    @GetMapping("/mempool")
-    public List<String> getMempool() {
+    @GetMapping("/transactions/{txid}")
+    @ResponseBody
+    public ResponseEntity<?> getTransactionDetails(@PathVariable String txid) {
 
-        return mempoolService.getRawMempool();
+        BitcoindRpcClient.RawTransaction transaction = mempoolService.getMempoolTransaction(txid);
+
+        Map<String, Object> transactionDetails = new HashMap<>();
+        transactionDetails.put("txid", txid);
+        transactionDetails.put("size", transaction.size());
+        transactionDetails.put("fee", mempoolService.calculateFee(transaction.txId()));
+        transactionDetails.put("confirmed", transaction.confirmations() != null && transaction.confirmations() > 0);
+        transactionDetails.put("confirmations", Optional.ofNullable(transaction.confirmations()).orElse(0));
+        transactionDetails.put("inputs", transaction.vIn().size());
+        transactionDetails.put("outputs", transaction.vOut().size());
+
+        return ResponseEntity.ok(transactionDetails);
     }
 
-    @GetMapping("/mempool/{txid}")
-    public BitcoindRpcClient.RawTransaction getRawTransaction(@PathVariable String txid) {
+    @GetMapping(value = "/realTime")
+    public ModelAndView visualiseMempoolRealTime() {
 
-        return mempoolService.getMempoolTransaction(txid);
+        ModelAndView mv = new ModelAndView();
+
+        mv.setViewName("realTimeMempool");
+
+        return mv;
     }
 
-    @GetMapping(value = "/mempool/visualise", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    @GetMapping(value = "/visualise", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public Flux<BitcoindRpcClient.RawTransaction> streamMempool() {
 
         return Flux.interval(Duration.ofSeconds(1))
@@ -55,27 +89,54 @@ public class MempoolController {
                 });
     }
 
-    @GetMapping("/mempool/{txid}/fees")
-    public BigDecimal getTotalFee(@PathVariable String txid) {
+    @GetMapping("/size")
+    public ModelAndView getTotalMempoolSize() {
 
-        return mempoolService.calculateFee(txid);
+        ModelAndView mv = new ModelAndView();
+
+        long size = mempoolService.getTotalMempoolSize();
+
+        mv.addObject("size", size);
+        mv.setViewName("statisics");
+
+        return mv;
     }
 
-    @GetMapping("/mempool/size")
-    public long getTotalMempoolSize() {
+    @GetMapping("/statistics")
+    public ModelAndView getMempoolStatistics() {
+        ModelAndView mv = new ModelAndView();
 
-        return mempoolService.getTotalMempoolSize();
+        Map<String, Object> stats = mempoolService.getMempoolStatistics();
+
+        for (Map.Entry<String, Object> entry : stats.entrySet()) {
+            mv.addObject(entry.getKey(), entry.getValue());
+            System.out.println(entry.getKey());
+        }
+
+        long size = mempoolService.getTotalMempoolSize();
+        mv.addObject("size", size);
+
+        mv.setViewName("statistics");
+
+        return mv;
     }
 
-    @GetMapping("/mempool/statistics")
-    public Map<String, Object> getStatistics() {
+    @GetMapping("/histogram")
+    public ModelAndView histogram() {
 
-        return mempoolService.getMempoolStatistics();
-    }
+        ModelAndView mv = new ModelAndView();
 
-    @GetMapping("/mempool/histogram")
-    public Map<String, List<Long>> getHistogram() {
+        try{
 
-        return mempoolService.getFeeHistogramData();
+            Map<String, List<Long>> data = mempoolService.getFeeHistogramData();
+
+            mv.addObject("data", data);
+            mv.setViewName("histogram");
+        } catch (BitcoinRPCException e) {
+
+            mv.setViewName("index");
+        }
+
+        return mv;
     }
 }
