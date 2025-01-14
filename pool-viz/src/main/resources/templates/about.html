@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.w3.org/1999/xhtml">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>About Mempool</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #1a1d2e;
+            font-family: 'Arial', sans-serif;
+            color: #fff;
+            text-align: center;
+        }
+        .header {
+            color: #00b4d8;
+            font-size: 2rem;
+            margin-top: 130px;
+            margin-bottom: 40px;
+        }
+        .size-display {
+            font-size: 4rem;
+            font-weight: bold;
+            color: #0077b6;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="/">Mempool Visualizer</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav">
+                <li class="nav-item">
+                    <a class="nav-link active" aria-current="page" href="/">Home</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/histogram">Histogram</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/statistics">Statistics</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/realTime">Real Time Mempool</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/about">About</a>
+                </li>
+            </ul>
+        </div>
+    </div>
+</nav>
+<div class="header">Total Mempool Size</div>
+<div class="size-display" id="sizeDisplay">0</div>
+
+<script th:inline="javascript">
+    document.addEventListener("DOMContentLoaded", function () {
+        const targetSize = [[${size}]]; // Thymeleaf inserts the size dynamically here
+        const displayElement = document.getElementById("sizeDisplay");
+        let currentSize = 0;
+
+        const interval = setInterval(() => {
+            if (currentSize < targetSize) {
+                currentSize += Math.ceil(targetSize / 100); // Increment in steps
+                if (currentSize > targetSize) {
+                    currentSize = targetSize;
+                }
+                displayElement.textContent = currentSize.toLocaleString(); // Format with commas
+            } else {
+                clearInterval(interval);
+            }
+        }, 20); // Adjust speed of animation
+    });
+</script>
+
+</body>
+</html>

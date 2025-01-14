@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Real-Time Mempool Visualizer</title>
+    <title>Mempool Visualizer</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
         body {
@@ -11,43 +11,149 @@
             font-family: 'Arial', sans-serif;
             color: #fff;
         }
-        .container {
-            margin-top: 20px;
+        .header {
+            background: linear-gradient(90deg, #00b4d8, #0077b6);
+            color: white;
+            padding: 30px;
+            text-align: center;
+            border-bottom: 2px solid #004e7c;
         }
-        .transaction {
-            background: #4b79a1;
-            margin: 10px 0;
-            padding: 15px;
-            border-radius: 10px;
+        .content {
+            margin: 30px auto;
+            padding: 20px;
+            max-width: 1000px;
+            background: #2c3e50;
+            border-radius: 15px;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+        .visualization {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-around;
+            gap: 20px;
+        }
+        .visual-box {
+            width: 120px;
+            height: 120px;
+            background-color: #4b79a1;
+            border-radius: 12px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-weight: bold;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+            transition: all 0.3s ease-in-out;
+            cursor: pointer;
+        }
+        .visual-box:hover {
+            transform: scale(1.1);
+            background-color: #0077b6;
+        }
+        footer {
+            text-align: center;
+            margin-top: 40px;
+            font-size: 0.9rem;
+            color: #aaa;
+        }
+        .modal-dialog {
+            max-width: 600px;
+        }
+        .modal-content {
+            background-color: #4b79a1;
+            color: white;
+            border-radius: 15px;
+            padding: 20px;
         }
     </style>
 </head>
 <body>
-<div class="container">
-    <h1 class="text-center">Real-Time Mempool Transactions</h1>
-    <div id="transactionList"></div>
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="#">Mempool Visualizer</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav">
+                <li class="nav-item">
+                    <a class="nav-link active" aria-current="page" href="#">Home</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/histogram">Histogram</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/statistics">Statistics</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/realTime">Real Time Mempool</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/about">About</a>
+                </li>
+            </ul>
+        </div>
+    </div>
+</nav>
+<div class="header">
+    <h1>Mempool Visualizer</h1>
 </div>
 
-<script>
+<!-- Main Content -->
+<div class="content">
+    <h2>Real-Time Transactions</h2>
+    <p>Click on a transaction block to see the details.</p>
+    <div class="visualization" id="transactionList"></div>
+</div>
 
+<!-- Footer -->
+<footer>
+    <p>© 2025 Mempool Visualizer. All rights reserved.</p>
+</footer>
+
+<!-- Modal -->
+<div class="modal fade" id="transactionModal" tabindex="-1" aria-labelledby="transactionModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="transactionModalLabel">Transaction Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="transactionDetails">
+                <p>Loading...</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- JavaScript -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+<script>
     const eventSource = new EventSource('/visualise');
 
     eventSource.onmessage = function (event) {
         const data = JSON.parse(event.data);
         const transactionList = document.getElementById('transactionList');
 
-        const transactionElement = document.createElement('div');
-        transactionElement.classList.add('transaction');
-        transactionElement.innerHTML = `
-            <p><strong>Transaction ID:</strong> ${data.txid}</p>
-            <p><strong>Size:</strong> ${data.size} bytes</p>
-            <p><strong>Fee:</strong> ${data.fee} BTC</p>
-            <p><strong>Confirmations:</strong> ${data.confirmations}</p>
-            <p><strong>Confirmed:</strong> ${data.confirmed ? 'Yes' : 'No'}</p>
-        `;
+        const transactionBox = document.createElement('div');
+        transactionBox.classList.add('visual-box');
+        transactionBox.setAttribute('data-bs-toggle', 'modal');
+        transactionBox.setAttribute('data-bs-target', '#transactionModal');
+        transactionBox.setAttribute('data-txid', data.m.txid);
+        transactionBox.innerHTML = `<span>${data.m.txid.substring(0, 6)}</span>`;
 
-        transactionList.prepend(transactionElement);
+        transactionBox.addEventListener('click', () => {
+            const transactionDetails = document.getElementById('transactionDetails');
+            transactionDetails.innerHTML = `
+                <p><strong>Transaction ID:</strong> ${data.m.txid}</p>
+                <p><strong>Size:</strong> ${data.m.size} bytes</p>
+                <p><strong>Fee:</strong> ${data.m.fee} BTC</p>
+                <p><strong>Confirmations:</strong> ${data.m.confirmations}</p>
+                <p><strong>Confirmed:</strong> ${data.confirmed ? 'Yes' : 'No'}</p>
+            `;
+        });
+
+        transactionList.prepend(transactionBox);
 
         if (transactionList.childElementCount > 20) {
             transactionList.removeChild(transactionList.lastChild);

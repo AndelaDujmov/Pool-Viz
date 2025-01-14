@@ -1,46 +1,31 @@
 <!DOCTYPE html>
 <html>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.4/Chart.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.5.0/Chart.min.js"></script>
 <body>
 
-<canvas id="myChart" style="width:100%;max-width:800px"></canvas>
+<canvas id="myChart" style="width:100%;max-width:600px"></canvas>
 
 <script>
-    // Get values from the Model
-    var totalTransactions = /*[[${totalTransactions}]]*/ 344;
-    var totalSize = /*[[${totalSize}]]*/ 129401;
-    var averageFee = /*[[${averageFee}]]*/ 0.00003093;
-    var averageSize = /*[[${averageSize}]]*/ 376;
+    var xValues = ["Italy", "France", "Spain", "USA", "Argentina"];
+    var yValues = [55, 49, 44, 24, 15];
+    var barColors = ["red", "green","blue","orange","brown"];
 
-    // Prepare data for the chart
-    var labels = ["Total Transactions", "Total Size (bytes)", "Average Fee (BTC)", "Average Size (bytes)"];
-    var data = [
-        totalTransactions,
-        totalSize,
-        averageFee, // This will be the BTC value (possibly needs scaling if it's very small)
-        averageSize
-    ];
-
-    var barColors = [
-        "#b91d47", "#00aba9", "#2b5797", "#e8c3b9"
-    ];
-
-    // Create the pie chart
     new Chart("myChart", {
-        type: "pie",
-        data: {
-            labels: labels,
-            datasets: [{
-                backgroundColor: barColors,
-                data: data
-            }]
-        },
-        options: {
-            title: {
-                display: true,
-                text: "Mempool Statistics"
-            }
+      type: "bar",
+      data: {
+        labels: xValues,
+        datasets: [{
+          backgroundColor: barColors,
+          data: yValues
+        }]
+      },
+      options: {
+        legend: {display: false},
+        title: {
+          display: true,
+          text: "World Wine Production 2018"
         }
+      }
     });
 </script>
 

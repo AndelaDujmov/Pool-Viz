@@ -89,7 +89,7 @@ public class MempoolController {
                 });
     }
 
-    @GetMapping("/size")
+    @GetMapping("/about")
     public ModelAndView getTotalMempoolSize() {
 
         ModelAndView mv = new ModelAndView();
@@ -97,7 +97,7 @@ public class MempoolController {
         long size = mempoolService.getTotalMempoolSize();
 
         mv.addObject("size", size);
-        mv.setViewName("statisics");
+        mv.setViewName("about");
 
         return mv;
     }
