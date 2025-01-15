@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.poolviz.pool_viz.service.MempoolService;
 import lombok.AllArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
@@ -16,13 +17,10 @@ import reactor.core.publisher.Flux;
 import wf.bitcoin.javabitcoindrpcclient.BitcoinRPCException;
 import wf.bitcoin.javabitcoindrpcclient.BitcoindRpcClient;
 
-
 import java.math.BigDecimal;
 import java.time.Duration;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
+import java.util.concurrent.atomic.AtomicReference;
 
 @Controller
 @AllArgsConstructor
@@ -102,25 +100,47 @@ public class MempoolController {
         return mv;
     }
 
-    @GetMapping("/statistics")
-    public ModelAndView getMempoolStatistics() {
+    @GetMapping(value = "/fluxStats", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public Flux<Map<String, Object>> getMempoolStatisticsRealtime() {
+        final AtomicReference<Integer> previousTransactionCount = new AtomicReference<>(0);
+
+        return Flux.interval(Duration.ofSeconds(1))
+                .onBackpressureBuffer()
+                .map(tick -> {
+                    Map<String, Object> stats = mempoolService.getMempoolStatistics();
+                    int currentTransactionCount = (int) stats.get("totalTransactions");
+
+                    int transactionsPerInterval = currentTransactionCount - previousTransactionCount.getAndSet(currentTransactionCount);
+
+                    List<BigDecimal> feeDistribution = mempoolService.getFeeDistribution();
+
+                    long timestamp = System.currentTimeMillis();
+
+                    return Map.of(
+                            "totalTransactions", stats.get("totalTransactions"),
+                            "totalSize", stats.get("totalSize"),
+                            "transactionsPerInterval", transactionsPerInterval,
+                            "feeDistribution", feeDistribution,
+                            "timestamp", timestamp
+                    );
+                })
+                .doOnError(error -> {
+                    System.err.println("Error fetching mempool stats: " + error.getMessage());
+                });
+    }
+
+
+    @GetMapping(value = "/statistics")
+    public ModelAndView getStatistics() {
+
         ModelAndView mv = new ModelAndView();
-
-        Map<String, Object> stats = mempoolService.getMempoolStatistics();
-
-        for (Map.Entry<String, Object> entry : stats.entrySet()) {
-            mv.addObject(entry.getKey(), entry.getValue());
-            System.out.println(entry.getKey());
-        }
-
-        long size = mempoolService.getTotalMempoolSize();
-        mv.addObject("size", size);
 
         mv.setViewName("statistics");
 
         return mv;
     }
 
+    // TODO: osto
     @GetMapping("/histogram")
     public ModelAndView histogram() {
 

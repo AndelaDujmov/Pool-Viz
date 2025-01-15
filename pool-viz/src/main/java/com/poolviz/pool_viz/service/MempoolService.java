@@ -34,7 +34,6 @@ public class MempoolService {
 
         BitcoindRpcClient.RawTransaction transaction = client.getRawTransaction(txid);
 
-
         total = calculateTotalInputs(transaction).subtract(calculateTotalOutputs(transaction));
 
         return total;
@@ -92,7 +91,6 @@ public class MempoolService {
     public Map<String, Object> getMempoolStatistics() {
         List<String> transactions = client.getRawMemPool();
 
-        // Use parallel streams to calculate totalFee and totalSize
         long totalSize = transactions.parallelStream()
                 .mapToLong(this::calculateTransactionSize)
                 .sum();
@@ -101,11 +99,9 @@ public class MempoolService {
                 .map(this::calculateFee)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        // Calculate average fee and size
         BigDecimal averageFee = totalFee.divide(BigDecimal.valueOf(transactions.size()), BigDecimal.ROUND_HALF_UP);
         long averageSize = totalSize / transactions.size();
 
-        // Prepare the statistics map
         Map<String, Object> stats = new HashMap<>();
         stats.put("totalTransactions", transactions.size());
         stats.put("totalSize", totalSize);
@@ -115,6 +111,14 @@ public class MempoolService {
         return stats;
     }
 
+    public List<BigDecimal> getFeeDistribution() {
+        List<String> transactions = client.getRawMemPool();
+
+        // Collect fees for fee distribution
+        return transactions.stream()
+                .map(this::calculateFee)
+                .collect(Collectors.toList());
+    }
 
     public Map<String, List<Long>> getFeeHistogramData() {
 

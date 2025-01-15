@@ -16,16 +16,13 @@ public class BitcoinRpcConfig {
 
     @Bean
     public BitcoinJSONRPCClient bitcoinClient() throws  MalformedURLException {
+
         Dotenv dotenv = Dotenv.configure().load();
 
         String rpcUrl = dotenv.get("BITCOIN_RPC_URL");
         String rpcUser = dotenv.get("BITCOIN_RPC_USER");
         String rpcPassword = dotenv.get("BITCOIN_RPC_PASSWORD");
         String rpcPort = dotenv.get("PORT");
-
-        System.out.println(rpcUrl);
-        System.out.println(rpcUser);
-        System.out.println(rpcPort);
 
         if (rpcUrl == null || rpcUser == null || rpcPassword == null || rpcPort == null) {
 
